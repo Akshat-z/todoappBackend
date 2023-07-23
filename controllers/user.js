@@ -48,7 +48,7 @@ export const login =async(req,res,next)=>{
      console.log(isMatch);
      if(isMatch){
       let message = `Hi,${isuser.name} Happy to see you back.`
-       return setToken(isuser,res,message); 
+         setToken(isuser,res,message); 
      } 
      else{
       return next(new ErrorHandler("password incorrect",501));
