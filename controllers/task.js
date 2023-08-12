@@ -1,62 +1,70 @@
-import ErrorHandler from "../middleware/errorhandler.js";
-import {task} from "../models/task.js"
+import ErrorHandler from '../middlewares/errorhandler.js';
+import { Task } from "../models/task.js";
 
+export const newTask = async (req, res, next) => {
+  try {
+    const { title, description } = req.body;
 
+    await Task.create({
+      title,
+      description,
+      user: req.user,
+    });
 
-//todo ************ newTask *************
-export const newTask = async(req,res,next) =>{
-  try{
-   const {title,description} = req.body;
- await task.create({
-   title,
-   description,
-   createdBy:req.user._id,
- })
-   res.status(201).json({
-    success:true,
-    message:"Task added successfully",
-    user:req.user
-   }) 
-} catch(error){
-  next(error);
-}
-}
+    res.status(201).json({
+      success: true,
+      message: "Task added Successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
-
-//todo ************ getMyTask *************
 export const getMyTask = async (req, res, next) => {
-  try{
-   const tasks = await task.find({ createdBy:req.user._id});
-   res.status(200).json({
-     success: true,
-     tasks,
-   });
- } catch(error){
-  next(error);
- }
-}
+  try {
+    const userid = req.user._id;
 
+    const tasks = await Task.find({ user: userid });
 
-//todo ************ updateTask *************
- export const updateTask = async(req,res,next) =>{
-  try{
-  const findTask =await task.findById(req.params.id);
-   if(!findTask) return next(new ErrorHandler("Task is not present",404)); 
-  findTask.isCompleted=!findTask.isCompleted
-   await findTask.save();
-   res.status(201).json({
-    message:"Your task has been updated successfully"
-   })
- } catch(error){
-  next(error);
- }
- }
+    res.status(200).json({
+      success: true,
+      tasks,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
+export const updateTask = async (req, res, next) => {
+  try {
+    const task = await Task.findById(req.params.id);
 
-//todo ************ deleteTask *************
- export const deleteTask = async(req,res,next)=>{
-  await task.findByIdAndDelete(req.params.id);
-  res.status(201).json({
-    message:"Your task has been deleted successfully"
-   })
- }
+    if (!task) return next(new ErrorHandler("Task not found", 404));
+
+    task.isCompleted = !task.isCompleted;
+    await task.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Task Updated!",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteTask = async (req, res, next) => {
+  try {
+    const task = await Task.findById(req.params.id);
+
+    if (!task) return next(new ErrorHandler("Task not found", 404));
+    await task.deleteOne();
+
+    res.status(200).json({
+      message: "Task Deleted!",
+      success: true,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
