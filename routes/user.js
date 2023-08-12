@@ -1,17 +1,14 @@
-import express  from "express";
-import * as allControllers from "../controllers/user.js"
-import { isAuthenticated } from "../middleware/authentic.js";
+import express from "express";
+import { getMyProfile, login, logout, register } from "../controllers/user.js";
+import { isAuthenticated } from "../middlewares/authentic.js";
 
-const router=express.Router();
+const router = express.Router();
 
-router.get('/all',allControllers.showall);
+router.post("/new", register);
+router.post("/login", login);
 
-router.post('/register',allControllers.register);
+router.get("/logout", logout);
 
-router.post('/login',allControllers.login);
-
-router.get('/logout',allControllers.logout);
-
-router.get('/me',isAuthenticated,allControllers.detail);
+router.get("/me", isAuthenticated, getMyProfile);
 
 export default router;
