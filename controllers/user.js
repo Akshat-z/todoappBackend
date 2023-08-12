@@ -1,104 +1,64 @@
-import {user} from "../models/user.js"
-import bcrypt from 'bcrypt' // encrypting the user password
-import {setToken} from '../utils/setToken.js'
-import ErrorHandler from "../middleware/errorhandler.js";
+import { User } from "../models/user.js";
+import bcrypt from "bcrypt"; // encrypting the user password
+import { sendCookie } from "../utils/setToken.js";
+import ErrorHandler from '../middlewares/errorhandler.js';
 
+export const login = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
 
-
-//todo  ********** showall *********
-export const showall = async(req,res)=>{
-   const findall = await user.find({});
-   res.json({
-     findall,
-   })
-}
-
-
-//todo  ********** register *********
-export const register = async(req,res,next)=>{
-  try{
- const {name,email,password} =req.body;
- const hashpassword = await bcrypt.hash(password,10);
- await user.create({
-  name,
-  email,
-  password:hashpassword,
-})
- res.status(201).json({
-  success:true,
-  message:"new user is created successfully",
- })
-}
-catch(error){
- next(error)
-}
-}
-
-
-//todo  ********** login *********
-export const login =async(req,res,next)=>{
-  try{
-   const {email,password} = req.body;
-   const isuser = await user.findOne({email}).select("+password");
-   /*as due to select property we can't directly access the password,
+    const user = await User.findOne({ email }).select("+password");
+     /*as due to select property we can't directly access the password,
     due to which we have to find email also with password*/ 
+    if (!user) return next(new ErrorHandler("Invalid Email or Password", 400));
 
-    if(isuser){
-     const isMatch = await bcrypt.compare(password,isuser.password);
-     console.log(isMatch);
-     if(isMatch){
-      let message = `Hi,${isuser.name} Happy to see you back.`
-         setToken(isuser,res,message); 
-     } 
-     else{
-      return next(new ErrorHandler("password incorrect",501));
-      // return res.status(501).json({
-      //    success: false,
-      //    message: "password incorrect",
-      //  })
-     }
-    }
-    else{
-      return next(new ErrorHandler("user does not exit",404));
-    }
-} catch(error){
-  next(error);
-}
-}
+    const isMatch = await bcrypt.compare(password, user.password);
 
+    if (!isMatch)
+      return next(new ErrorHandler("Invalid Email or Password", 400));
 
-//todo  ********** logout *********
-export const logout = async(req,res,next)=>{
-  try{
-  const {token} =req.cookies;
-  if(token){
- await res.cookie("token","",{
-  expires:new Date(Date.now()),
- });
+    sendCookie(user, res, `Welcome back, ${user.name}`, 200);
+  } catch (error) {
+    next(error);
+  }
+};
 
- return res.status(201).json({
-   success: true,
-   message: "successfully logout",
- })
+export const register = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
 
-}
-else{
-  return next(new ErrorHandler("Invalid User",505));
-  // return res.status(505).json({
-  //   success: false,
-  //   message: "Invalid user",
-  // })
-}
-}catch(error){
-  next(error);
-}
-}
+    let user = await User.findOne({ email });
 
+    if (user) return next(new ErrorHandler("User Already Exist", 400));
 
-//todo  ********** detail *********
-export const detail = async(req,res)=>{
-  res.json({
-    success:true,
-    user:req.user,
-   })
-}
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    user = await User.create({ name, email, password: hashedPassword });
+
+    sendCookie(user, res, "Registered Successfully", 201);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getMyProfile = (req, res) => {
+  res.status(200).json({
+    success: true,
+    user: req.user,
+  });
+};
+
+export const logout = (req, res) => {
+  res
+    .status(200)
+    .cookie('token', '', {
+      expires: new Date(Date.now()),
+      sameSite: 'none', //as in our case our backend url and front url is not same
+      secure: true, // if we not true if than cookies will be blocked will deploying.
+      //! set sameSite:"lax" and secure:false while running it in local host.
+    })
+    .json({
+      success: true,
+      user: req.user,
+    });
+};
